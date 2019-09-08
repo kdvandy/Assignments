@@ -1,0 +1,73 @@
+---
+title: "Assisgnement_Osborne_v2"
+output:
+  html_document: default
+  word_document: default
+---
+
+The first part of the assignment asks us to create a sentence that ouputs "Hello, World"
+```{r}
+print("Hello, World")
+```
+
+Next, we're going to set the working directory for the remainder of the assignment.
+```{r}
+setwd("/Users/Wizard/Dropbox/V_Fall 19/Data Science/Class/scripts_data_files")
+```
+
+Before going any further, we want to make sure that our global environment is clear and that we have installed the necessary libraries. 
+```{r scorecard} 
+## Clear environment
+rm(list=ls())
+## Get necessary libraries-- won't work the first time, because you need to install them!
+library(tidyverse)
+```
+
+We will now load the data that we will need in order to complete the remainder of the questions in the problem set. 
+```{r}
+load("college.Rdata")
+```
+
+
+We want to examine the difference in average earnings between selective and not very selective schools. After calculating the earnings for each of these two subsets, we will then compare. 
+```{r}
+## What's the average earnings  for very selective schools?
+sc%>%filter(adm_rate<.1)%>%summarize(mean_earnings=mean(md_earn_wne_p6,na.rm=TRUE))
+
+## And for not very selective schools?
+sc%>%filter(adm_rate>.3)%>%summarize(mean_earnings=mean(md_earn_wne_p6,na.rm=TRUE))
+```
+
+These findings suggest that average earnings at selective schools are approximately $18,752.86 more than average earnings at less selective schools 
+
+```{r}
+#What's the average size for schools with high SAT scores?
+sc%>%filter(sat_avg>1300)%>%summarize(avg_size=mean(ugds,na.rm=TRUE))
+
+#What's the average size for schools with low SAT scores?
+sc%>%filter(sat_avg<1100)%>%summarize(avg_size=mean(ugds,na.rm=TRUE))
+
+```
+
+
+Next, we'll be looking at whether there is a relationship between the cost of attending a school and the debt that a student leaves with. To do so, we will create a scatter plot using these two variables. 
+```{r}
+plot(sc$costt4_a, sc$debt_mdn, main="Scatterplot of Cost and Debt", xlab ="Cost", ylab = "Debt", pch=19)
+costdebt <- lm(debt_mdn ~ costt4_a, data = sc)
+abline(costdebt)
+```
+Based on this plot, it looks like there is a positive relationship between the cost of a university and the amount of debt that a student graduates with. 
+
+
+Finally, we will create two separate scatter plots that examine whether there is a relationship between the control of a school (i.e., public, private not for profit, private for profit) and cost or debt. First up, its control and cost. 
+```{r}
+plot(sc$control, sc$costt4_a, main="Scatterplot of Cost and Control", xlab ="Control", ylab = "Cost", pch=19)
+costcontrol <- lm(costt4_a ~ control, data = sc)
+abline(costcontrol)
+```
+
+```{r}
+plot(sc$control, sc$debt_mdn, main="Scatterplot of Debt and Control", xlab ="Control", ylab = "Debt", pch=19)
+debtcontrol <- lm(debt_mdn ~ control, data = sc)
+abline(debtcontrol)
+```

@@ -1,0 +1,95 @@
+---
+title: "02_assignment_Osborne"
+output: html_document
+---
+
+```{r data}
+load("pd.Rdata")
+```
+
+```{r  include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(plotly)
+library(Metrics)
+```
+
+## 1. Calculate the mean of the outcome - homeownership rates 
+
+```{r}
+pd%>%summarize(mean_homeown_rate=mean(homeown_rate,na.rm=TRUE))
+```
+
+## 2. Create a new variable for the mean of outcome
+
+```{r}
+pd<-pd%>%mutate(mean_homeown_rate=mean(homeown_rate))
+```
+
+## 3. Calculate a summary measure of errors 
+
+```{r error_terms}
+#This code will create an error variable defined by subtracting the mean hometown rate from the original hometowm rate
+pd<-pd%>%mutate(e1=homeown_rate-mean_homeown_rate)
+```
+
+```{r}
+## RMSE
+
+rmse_uncond_mean<-rmse(pd$homeown_rate,pd$mean_homeown_rate)
+
+rmse_uncond_mean
+```
+
+## 4. Calculate the mean outcome at levels of a predictor variable 
+```{r condtl_mean_single}
+##Condtional Average across a single variable
+
+## Create a variable for quartiles of median home value
+pd<-pd%>%mutate(median_home_val_level=ntile(median_home_val,4))
+
+pd%>%select(county,median_home_val,median_home_val_level)%>%View()
+
+table(pd$median_home_val_level)
+
+pd<-pd%>%group_by(median_home_val_level)%>% ## Group by predictor
+  ##Calculate mean at each level of predictor
+  mutate(pred_homeown_med_val=mean(homeown_rate))%>% 
+  ## Ungroup
+  ungroup()%>% 
+  #Rank by prediction, with ties sorted randomly
+  mutate(pred_homeown_med_val_rank=rank(pred_homeown_med_val,ties.method="random"))
+
+pd%>%select(county,median_home_val,median_home_val_level,pred_homeown_med_val)%>%View()
+
+
+pd%>%group_by(median_home_val_level)%>% ## Group by predictor
+  ##Calculate mean at each level of predictor
+  summarise(pred_homeown_med_val=mean(homeown_rate))
+```
+
+
+## 5. Use conditional means as a prediction: for every county, use the conditional mean to provide a "best guess" as to that county's level of the outcome 
+
+```{r}
+##This code allows us to view each county and it's predicted outcome level (i.e., pre_homeown_med_val) based on the conditional mean (i.e., median_home_val)
+pd%>%select(county,median_home_val,median_home_val_level,pred_homeown_med_val)%>%View()
+
+##This code chunk will graphically represent these best guesses 
+gg<-ggplot(data=pd,aes(x=pred_homeown_med_val_rank,y=homeown_rate,color="Actual"))
+gg<-gg+geom_point(alpha=.5,size=.5)
+gg<-gg+geom_point(aes(x=pred_homeown_med_val_rank,y=pred_homeown_med_val,color="Predicted:Conditional Mean, 1 var"))
+gg<-gg+ scale_color_manual("Type",values=c("Predicted:Conditional Mean, 1 var"="red","Actual"="black"))
+gg<-gg+theme(legend.position="bottom")
+gg<-gg+xlab("Rank")+ylab("Homeownership Rate")
+gg
+
+```
+
+## 6. Calculate a summary measure of errors in your predictions
+
+```{r}
+##This code chunk will measure error in the predictions calculated by using one predictor variable. Based on this calculation, we can see that the chosen predictor variable helps to reduce the error though not by much. 
+rmse_cond_mean_one<-rmse(pd$homeown_rate,pd$pred_homeown_med_val)
+rmse_cond_mean_one
+```
